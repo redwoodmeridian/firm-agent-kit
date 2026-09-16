@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What an agent actually is</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&display=swap">
+<style>
+  :root {
+    --ink:       #14171d;
+    --soft:      #4d5462;
+    --faint:     #838b99;
+    --paper:     #f5f5f2;
+    --surface:   #ffffff;
+    --line:      #dededa;
+    --hair:      #ebebe7;
+
+    --step:      #2a4b8d;   /* the build journey */
+    --step-bg:   #eaeff8;
+    --gate:      #a8500c;   /* rails and refusals */
+    --gate-bg:   #fbf0e5;
+    --live:      #2c6b50;   /* running */
+    --live-bg:   #e9f2ed;
+
+    --display: "Newsreader", Georgia, serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:     #ecedf1;
+      --soft:    #a9b0be;
+      --faint:   #737b8a;
+      --paper:   #13151a;
+      --surface: #1a1d24;
+      --line:    #2d323b;
+      --hair:    #23272f;
+      --step:    #8fb0ea;
+      --step-bg: #18212f;
+      --gate:    #e0a069;
+      --gate-bg: #291e13;
+      --live:    #7cc19c;
+      --live-bg: #15241c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 52px 72px;
+  }
+
+  /* ---------------- masthead ---------------- */
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 16px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: clamp(36px, 7vw, 62px);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--soft);
+    max-width: 56ch;
+    margin: 0;
+  }
+  .standfirst em { font-family: var(--display); font-style: italic; color: var(--ink); }
+
+  .bigrule { height: 3px; background: var(--ink); margin-top: 34px; }
+
+  /* ---------------- section headers ---------------- */
+
+  .sec {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 64px 0 8px;
+  }
+  .sec .no {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+  .sec h2 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(24px, 4vw, 33px);
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .sec .rule { flex: 1; height: 1px; background: var(--line); }
+
+  .secnote {
+    color: var(--soft);
+    max-width: 62ch;
+    margin: 0 0 26px;
+    font-size: 15.5px;
+  }
+
+  /* ---------------- five parts ---------------- */
+
+  .parts {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .part {
+    padding: 20px 18px;
+    border-right: 1px solid var(--hair);
+  }
+  .part:last-child { border-right: 0; }
+  .part .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 10px;
+  }
+  .part h3 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 23px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .part p { margin: 0; font-size: 13.5px; color: var(--soft); line-height: 1.5; }
+  .part .ask {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid var(--hair);
+    color: var(--ink);
+    font-style: italic;
+    font-family: var(--display);
+    font-size: 15px;
+    line-height: 1.35;
+  }
+  .part.is-rails { background: var(--gate-bg); }
+  .part.is-rails h3 { color: var(--gate); }
+
+  @media (max-width: 860px) {
+    .parts { grid-template-columns: 1fr 1fr; }
+    .part { border-bottom: 1px solid var(--hair); }
+    .part:nth-child(2n) { border-right: 0; }
+  }
+  @media (max-width: 520px) {
+    .parts { grid-template-columns: 1fr; }
+    .part { border-right: 0; }
+  }
+
+  /* ---------------- triggers ---------------- */
+
+  .triggers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+  }
+  .trig {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--live);
+    padding: 16px 16px 15px;
+  }
+  .trig .icon {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--live);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .trig h4 { margin: 0 0 6px; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .trig p { margin: 0; font-size: 13.5px; color: var(--soft); }
+  .trig .eg {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--faint);
+  }
+
+  /* ---------------- journeys ---------------- */
+
+  .journey { border-top: 1px solid var(--line); }
+
+  .leg {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--hair);
+    align-items: start;
+  }
+
+  .leg .marker {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .build .marker { color: var(--step); }
+  .run .marker { color: var(--live); }
+
+  .leg h3 {
+    margin: 0 0 5px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+  .leg p { margin: 0; font-size: 14.5px; color: var(--soft); max-width: 66ch; }
+
+  .who {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    margin-left: 9px;
+    vertical-align: 2px;
+    border: 1px solid currentColor;
+  }
+  .who.claude { color: var(--step); }
+  .who.you    { color: var(--gate); }
+  .who.both   { color: var(--faint); }
+  .who.agent  { color: var(--live); }
+
+  .leg.is-gate { background: var(--gate-bg); margin-inline: -14px; padding-inline: 14px; }
+  .leg.is-gate h3 { color: var(--gate); }
+
+  .quote {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink);
+    margin: 10px 0 0;
+    padding-left: 14px;
+    border-left: 2px solid var(--line);
+    max-width: 60ch;
+  }
+
+  @media (max-width: 560px) {
+    .leg { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------------- rails ---------------- */
+
+  .rails {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 720px) { .rails { grid-template-columns: 1fr; } }
+
+  .rail {
+    border-left: 3px solid var(--gate);
+    background: var(--surface);
+    padding: 15px 17px;
+  }
+  .rail h4 {
+    margin: 0 0 6px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--gate);
+    letter-spacing: 0.01em;
+  }
+  .rail p { margin: 0; font-size: 14px; color: var(--soft); }
+
+  /* ---------------- close ---------------- */
+
+  .close {
+    margin-top: 58px;
+    padding: 30px 32px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .close p {
+    font-family: var(--display);
+    font-size: clamp(20px, 3.4vw, 27px);
+    font-weight: 300;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    margin: 0;
+    max-width: 30ch;
+  }
+  .close .sub {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--soft);
+    margin-top: 14px;
+    max-width: 60ch;
+    line-height: 1.55;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 3px solid var(--ink);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--faint);
+    letter-spacing: 0.03em;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .leg, .part, .trig { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Intelligence Labs &middot; Advanced Room</p>
+  <h1>What an agent actually is</h1>
+  <p class="standfirst">
+    Not a product you buy. A handful of text files, and somewhere for them to
+    run. Every automation, whatever it does, is built from the same five parts
+    &mdash; and the one that makes it safe to leave running is the one nobody
+    talks about.
+  </p>
+  <div class="bigrule"></div>
+
+  <!-- ===================== 1. THE FIVE PARTS ===================== -->
+
+  <div class="sec">
+    <span class="no">01</span>
+    <h2>Every automation has five parts</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    Whatever you are automating, in whatever tool, it decomposes into these.
+    Get all five written down and you have designed it. Skip one and you will
+    find out which one at the worst moment.
+  </p>
+
+  <div class="parts">
+    <div class="part">
+      <div class="tag">Part one</div>
+      <h3>Trigger</h3>
+      <p>The one thing that means this work should start. Exactly one, or it never starts cleanly.</p>
+      <div class="ask">&ldquo;What happens right before I would normally do this?&rdquo;</div>
+    </div>
+    <div class="part">
+      <div class="tag">Part two</div>
+      <h3>Inputs</h3>
+      <p>The facts the work needs, and where each one comes from. This becomes your columns.</p>
+      <div class="ask">&ldquo;What do I need to know before I can start?&rdquo;</div>
+    </div>
+    <div class="part">
+      <div class="tag">Part three</div>
+      <h3>Steps</h3>
+      <p>What happens, in order. Each step small enough to name in a few words.</p>
+      <div class="ask">&ldquo;Then what? And then what?&rdquo;</div>
+    </div>
+    <div class="part is-rails">
+      <div class="tag">Part four</div>
+      <h3>Rails</h3>
+      <p>What it must never do, no matter what. Written as hard rules, not preferences.</p>
+      <div class="ask">&ldquo;What would be embarrassing or expensive if it happened by accident?&rdquo;</div>
+    </div>
+    <div class="part">
+      <div class="tag">Part five</div>
+      <h3>Stop</h3>
+      <p>Where it hands back to a person, and what it tells them. Everything ends somewhere.</p>
+      <div class="ask">&ldquo;Where do I want to be the one deciding?&rdquo;</div>
+    </div>
+  </div>
+
+  <!-- ===================== 2. TRIGGERS ===================== -->
+
+  <div class="sec">
+    <span class="no">02</span>
+    <h2>What can start it</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    Five shapes, and only five. The clock is the one to start with, because it
+    is the easiest to watch, the easiest to reason about, and the easiest to
+    switch off.
+  </p>
+
+  <div class="triggers">
+    <div class="trig">
+      <div class="icon">Time</div>
+      <h4>A clock</h4>
+      <p>It wakes up on a schedule and asks whether there is work.</p>
+      <div class="eg">Every ten minutes. Every morning at seven. First of the month.</div>
+    </div>
+    <div class="trig">
+      <div class="icon">Submit</div>
+      <h4>A form</h4>
+      <p>Somebody fills something in and that submission is the start.</p>
+      <div class="eg">An intake questionnaire. A request from a colleague.</div>
+    </div>
+    <div class="trig">
+      <div class="icon">Inbound</div>
+      <h4>A webhook</h4>
+      <p>Another system says "this just happened" by sending a message to yours.</p>
+      <div class="eg">Your website. Your CRM. A payment. Anything with an API.</div>
+    </div>
+    <div class="trig">
+      <div class="icon">Change</div>
+      <h4>An edit</h4>
+      <p>Something changed in a file or a row, and the change itself is the signal.</p>
+      <div class="eg">A status flipped. A file landed in a folder.</div>
+    </div>
+    <div class="trig">
+      <div class="icon">Manual</div>
+      <h4>You press run</h4>
+      <p>No automation at all, and a completely reasonable place to stay.</p>
+      <div class="eg">Where everything starts, and where plenty of things should stop.</div>
+    </div>
+  </div>
+
+  <!-- ===================== 3. BEFORE IT EXISTS ===================== -->
+
+  <div class="sec">
+    <span class="no">03</span>
+    <h2>Before there is any script</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    This is the part people skip, and it is the part that decides whether the
+    thing works. You do not start by writing code. You start by talking, and
+    Claude does the asking.
+  </p>
+
+  <div class="journey build">
+
+    <div class="leg">
+      <div class="marker">01</div>
+      <div>
+        <h3>Brainstorm <span class="who claude">Claude asks</span></h3>
+        <p>
+          You say what you do over and over. If nothing comes to mind, Claude
+          offers a few from a list of things people in your line of work
+          usually automate, in your words rather than in software words. You
+          pick one. Just one.
+        </p>
+        <p class="quote">Not your hardest job. Your most repeated one.</p>
+      </div>
+    </div>
+
+    <div class="leg">
+      <div class="marker">02</div>
+      <div>
+        <h3>The interview <span class="who both">Back and forth</span></h3>
+        <p>
+          One question at a time, waiting for each answer. What happens today,
+          from the moment the work arrives to the moment it is done. What
+          starts it. What it needs to know. What it produces. What it must
+          never do. Where a person has to be involved.
+        </p>
+        <p>
+          It should feel like explaining the job to somebody on their first
+          morning, because that is exactly what it is.
+        </p>
+      </div>
+    </div>
+
+    <div class="leg is-gate">
+      <div class="marker">03</div>
+      <div>
+        <h3>The rails conversation <span class="who you">You decide</span></h3>
+        <p>
+          The one question worth slowing down for: what would be embarrassing,
+          expensive, or a serious problem if it happened by accident? Your
+          answers become hard rules in the code, not suggestions in a prompt.
+          If every rail came from Claude rather than from you, this step has
+          not really happened yet.
+        </p>
+      </div>
+    </div>
+
+    <div class="leg">
+      <div class="marker">04</div>
+      <div>
+        <h3>One page you can read <span class="who claude">Claude writes</span></h3>
+        <p>
+          Everything agreed goes into a single file, in your own words. Read
+          it and you know everything the agent is. No jargon, no code, nothing
+          hidden. If it says something you would not allow, you say so now and
+          it changes.
+        </p>
+        <p class="quote">Read this one page and you know the whole of it.</p>
+      </div>
+    </div>
+
+    <div class="leg">
+      <div class="marker">05</div>
+      <div>
+        <h3>Now the code <span class="who claude">Claude writes</span></h3>
+        <p>
+          Only now. Claude turns that page into the actual script, plus the
+          settings that point it at your own files. You do not write any of it
+          and you do not need to read it, though it is there if you want to.
+        </p>
+      </div>
+    </div>
+
+    <div class="leg">
+      <div class="marker">06</div>
+      <div>
+        <h3>Into Google <span class="who you">You paste, or Claude pushes</span></h3>
+        <p>
+          The script goes into Apps Script, which is a code editor Google
+          already gives you, inside the account you already have. Either Claude
+          pushes it there for you, or you paste the files in once. Nothing is
+          installed, nothing is hosted, no card is needed.
+        </p>
+      </div>
+    </div>
+
+    <div class="leg">
+      <div class="marker">07</div>
+      <div>
+        <h3>Permission <span class="who you">You approve</span></h3>
+        <p>
+          Google asks whether this script may act on your behalf. It warns you
+          that the app is unverified, which is true: the app is the thing you
+          just wrote. It runs as you, in your account, and nothing it touches
+          leaves it.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== 4. BEFORE YOU TRUST IT ===================== -->
+
+  <div class="sec">
+    <span class="no">04</span>
+    <h2>Before you let it run unattended</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    Three checks, in this order. The third one is the one that actually decides
+    whether you trust it, and most people skip it.
+  </p>
+
+  <div class="journey build">
+    <div class="leg">
+      <div class="marker">08</div>
+      <div>
+        <h3>A check that writes nothing</h3>
+        <p>
+          It reads everything it would use and reports what is missing, without
+          creating a single thing. Fix what it names, run it again, repeat until
+          it is clean.
+        </p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">09</div>
+      <div>
+        <h3>One real run, watched</h3>
+        <p>
+          One genuine piece of work, started by hand, with you looking at it.
+          Read what it produced against what you would have produced.
+        </p>
+      </div>
+    </div>
+    <div class="leg is-gate">
+      <div class="marker">10</div>
+      <div>
+        <h3>Break it on purpose</h3>
+        <p>
+          Leave something out deliberately and watch it refuse. Then go and
+          check that it left nothing behind: no half-finished work, nothing to
+          tidy up. Watching it stop correctly is what earns it the right to run
+          when you are not looking.
+        </p>
+        <p class="quote">You are not testing whether it works. You are testing whether it stops.</p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">11</div>
+      <div>
+        <h3>Now put it on the clock</h3>
+        <p>
+          And learn how to switch it off before you walk away. Knowing how to
+          stop it is what makes people willing to start it.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 5. ONCE IT RUNS ===================== -->
+
+  <div class="sec">
+    <span class="no">05</span>
+    <h2>What happens on every single run</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    The same seven things, in the same order, every time. This is the shape of
+    a run whether it is handling one item or a hundred.
+  </p>
+
+  <div class="journey run">
+    <div class="leg">
+      <div class="marker">I</div>
+      <div>
+        <h3>Claim it <span class="who agent">Agent</span></h3>
+        <p>Mark the work as taken, first, so nothing else picks it up and nothing gets done twice.</p>
+      </div>
+    </div>
+    <div class="leg is-gate">
+      <div class="marker">II</div>
+      <div>
+        <h3>Check before doing anything</h3>
+        <p>
+          Confirm every fact it needs is actually there. Something missing means
+          it stops now and says which thing, while stopping is still free.
+          Nothing has been created yet, so there is nothing to undo.
+        </p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">III</div>
+      <div>
+        <h3>Do the steps <span class="who agent">Agent</span></h3>
+        <p>In the order you listed them. Nothing decided on the fly.</p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">IV</div>
+      <div>
+        <h3>Check its own work</h3>
+        <p>
+          Against a list you wrote. If the check fails it says so and stops,
+          rather than passing the problem downstream.
+        </p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">V</div>
+      <div>
+        <h3>Hand off, do not finish</h3>
+        <p>
+          Anything that reaches another person waits for a person to release
+          it. Prepared, ready, not sent.
+        </p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">VI</div>
+      <div>
+        <h3>Write down what it did</h3>
+        <p>
+          Back where you will look: one line, what ran, what came out, what
+          needs you. An automation you cannot see is an automation you cannot
+          trust.
+        </p>
+      </div>
+    </div>
+    <div class="leg">
+      <div class="marker">VII</div>
+      <div>
+        <h3>Stop</h3>
+        <p>And wait for the next trigger. It does not look for more to do.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 6. RAILS ===================== -->
+
+  <div class="sec">
+    <span class="no">06</span>
+    <h2>The rails, and why they are the point</h2>
+    <span class="rule"></span>
+  </div>
+  <p class="secnote">
+    A rail is a rule written into the code, so it holds whether or not anyone
+    remembers it. These five carry over to almost anything worth automating.
+  </p>
+
+  <div class="rails">
+    <div class="rail">
+      <h4>Never guess a missing value</h4>
+      <p>Something absent means stop and name it. A value filled in from what is typical is a decision nobody made.</p>
+    </div>
+    <div class="rail">
+      <h4>Stopping must leave nothing behind</h4>
+      <p>Check everything before creating anything. Half-finished work is worse than none, because it looks finished.</p>
+    </div>
+    <div class="rail">
+      <h4>Prepare, never release</h4>
+      <p>Anything going to another person gets drafted and waits. The judgment stays with whoever is accountable for it.</p>
+    </div>
+    <div class="rail">
+      <h4>Never edit the output to pass a check</h4>
+      <p>Fix the input or fix the template. Patching the result hides the fault, and it comes back on the next one.</p>
+    </div>
+    <div class="rail">
+      <h4>Stop and report, never work around</h4>
+      <p>A refusal that names the problem is a good outcome. Something built on an assumption is not.</p>
+    </div>
+    <div class="rail">
+      <h4>Every refusal is information</h4>
+      <p>Keep them. Each one names a question your process is not asking. That list is worth more than any of the output.</p>
+    </div>
+  </div>
+
+  <!-- ===================== CLOSE ===================== -->
+
+  <div class="close">
+    <p>Text files, and somewhere to run them.</p>
+    <div class="sub">
+      A page describing the job, a list of rules it cannot break, and a place
+      that stays awake. There is no platform underneath this, nothing to
+      subscribe to, and nothing you cannot read. The only difference between a
+      demonstration and something real is not the files. It is the place.
+    </div>
+  </div>
+
+  <footer>
+    <span>MLA Intelligence Labs</span>
+    <span>Irfad Imtiaz &middot; Director of Technology</span>
+  </footer>
+
+</div>
+</body>
+</html>
