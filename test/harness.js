@@ -120,7 +120,20 @@ function makeWorld() {
     const grid = sheets.get(ssId).get(tab);
     return {
       getDataRange: () => ({ getValues: () => grid.map((r) => r.slice()) }),
-      getRange: (r, c) => ({
+      getLastRow: () => grid.length,
+      getLastColumn: () => grid.reduce((m, r) => Math.max(m, r.length), 0),
+      getRange: (r, c, numRows, numCols) => (numRows !== undefined ? {
+        getValues: () => {
+          const out = [];
+          for (let i = r; i < r + numRows; i++) {
+            const row = grid[i - 1] || [];
+            const slice = [];
+            for (let j = c; j < c + (numCols || 1); j++) slice.push(row[j - 1] === undefined ? '' : row[j - 1]);
+            out.push(slice);
+          }
+          return out;
+        }
+      } : {
         setValue: (v) => {
           while (grid.length < r) grid.push([]);
           const row = grid[r - 1];
@@ -195,11 +208,37 @@ function makeWorld() {
     getDefaultCalendar: () => calendarApi('default'),
     getCalendarById: (id) => calendarApi(id)
   };
+  const fetches = [];
+  let nextResponse = { code: 200, text: '{"ok":true,"id":"ext-123"}' };
+  const UrlFetchApp = {
+    fetch: (url, options) => {
+      fetches.push({ url, options });
+      const r = nextResponse;
+      return {
+        getResponseCode: () => r.code,
+        getContentText: () => r.text
+      };
+    }
+  };
+  const scriptProperties = new Map();
+  const PropertiesService = {
+    getScriptProperties: () => ({
+      getProperty: (k) => (scriptProperties.has(k) ? scriptProperties.get(k) : null),
+      setProperty: (k, v) => { scriptProperties.set(k, v); }
+    })
+  };
+  const ContentService = {
+    MimeType: { JSON: 'application/json' },
+    createTextOutput: (t) => ({ text: t, setMimeType: function () { return this; }, getContent: () => t })
+  };
   const triggers = [];
   const ScriptApp = {
     newTrigger: (fn) => ({
       timeBased: () => ({
         everyMinutes: (m) => ({ create: () => { triggers.push({ fn, minutes: m }); } })
+      }),
+      forForm: (formId) => ({
+        onFormSubmit: () => ({ create: () => { triggers.push({ fn, formId }); } })
       })
     }),
     getProjectTriggers: () => triggers.slice(),
@@ -209,7 +248,8 @@ function makeWorld() {
   /* ---------- world helpers used by the tests ---------- */
 
   const world = {
-    files, drafts, sent, logs, triggers, events,
+    files, drafts, sent, logs, triggers, events, fetches, scriptProperties,
+    setResponse(code, text) { nextResponse = { code, text }; },
     rootFolder: null,
     createRoot(name) { const f = makeFolder(name, null); world.rootFolder = f; return f; },
     createTemplate(name, text) {
@@ -241,6 +281,7 @@ function makeWorld() {
   const sandbox = {
     DriveApp, DocumentApp, SpreadsheetApp, GmailApp, MailApp,
     Utilities, Logger, LockService, Session, MimeType, ScriptApp, CalendarApp,
+    UrlFetchApp, PropertiesService, ContentService,
     console, module: undefined
   };
 
@@ -257,7 +298,7 @@ function loadEngine(configObject) {
   // Config first: the engine closes over CONFIG.
   vm.runInContext(`var CONFIG = ${JSON.stringify(configObject)};`, context, { filename: 'Config.gs' });
 
-  for (const file of ['Rails.gs', 'Steps.gs', 'Custom.gs', 'Runner.gs', 'Setup.gs']) {
+  for (const file of ['Rails.gs', 'Steps.gs', 'Custom.gs', 'Runner.gs', 'Setup.gs', 'Webhook.gs']) {
     const code = fs.readFileSync(path.join(SRC, file), 'utf8');
     vm.runInContext(code, context, { filename: file });
   }

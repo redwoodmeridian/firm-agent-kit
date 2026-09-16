@@ -105,3 +105,72 @@ the Apps Script editor. Every run is logged there with its error.
 
 **You changed a template and now it refuses.** That is correct. You added a
 placeholder and no column supplies it. Add the column.
+
+---
+
+## Beyond the clock
+
+Start with the clock. Add these when the work should not wait for a poll.
+
+### A Google Form as the front door
+
+Set `formId` in `Config.gs` to your form's id, then run **`installFormTrigger`**
+once. Every submission becomes a row with the status already set to ready.
+
+Name the form questions the same as your sheet columns and they line up on their
+own.
+
+### A webhook, so anything can start your agent
+
+1. In the Apps Script editor: **Deploy > New deployment > Web app**.
+   Execute as **Me**. Who has access **Anyone**.
+2. Copy the `/exec` URL.
+3. Project Settings > Script Properties, add **`WEBHOOK_SECRET`** with a long
+   random value.
+4. Have the sender POST JSON including that secret:
+
+```bash
+curl -X POST "https://script.google.com/macros/s/<id>/exec" \
+  -H "Content-Type: application/json" \
+  -d '{"secret":"<your secret>","matter_id":"M-100","client_name":"Maria Alvarez","fee_amount":"$7,500.00"}'
+```
+
+"Anyone" really does mean anyone, which is why the secret is not optional. The
+endpoint rejects anything without it and tells the caller nothing about why.
+
+A webhook row goes through exactly the same gates as one you typed. If it is
+missing a fee amount, it refuses, and you read the refusal in the sheet.
+
+### Calling something outside Google
+
+The `httpRequest` step calls any API: your case management system, your CRM, a
+notification service, your own server.
+
+It is **off until you turn it on**, and then only for hosts you name:
+
+```js
+rails: {
+  allowOutboundHttp: true,
+  allowedHosts: ['api.clio.com']
+}
+```
+
+https only, exact hostnames, no wildcards. This is the step that moves client
+data off Google's servers, so the allowlist is the thing standing between a
+typo and a disclosure.
+
+**Secrets never go in `Config.gs`.** Put them in Project Settings > Script
+Properties and reference them as `{{@TOKEN_NAME}}`. They are read at run time
+and never written to a log. Response bodies are not logged either, for the same
+reason.
+
+### Quotas worth knowing
+
+A Workspace account gets roughly 1,500 documents created, 1,500 email
+recipients and 20,000 URL fetches per day. A consumer Gmail account gets far
+less, 100 email recipients among them. One execution stops at 6 minutes on
+consumer and 30 on Workspace, so batch long jobs and keep `maxPerRun` small.
+
+Numbers change. The
+[official quota page](https://developers.google.com/apps-script/guides/services/quotas)
+is the one to trust.

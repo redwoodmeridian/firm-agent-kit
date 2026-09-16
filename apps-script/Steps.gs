@@ -81,6 +81,10 @@ var Steps = (function () {
     } else if (step.type === 'notify') {
       addFrom(step.subject);
       addFrom(step.body);
+    } else if (step.type === 'httpRequest') {
+      addFrom(step.url);
+      if (typeof step.payload === 'string') addFrom(step.payload);
+      else if (step.payload) addFrom(JSON.stringify(step.payload));
     } else if (step.type === 'createCalendarEvent') {
       addFrom(step.title);
       addFrom(step.description);
@@ -284,6 +288,85 @@ var Steps = (function () {
     return { columns_written: Object.keys(written).length };
   }
 
+  /**
+   * Call something outside Google: a case management system, a CRM, a
+   * notification service, your own webhook.
+   *
+   * This is what makes the kit more than Workspace automation, and it is the
+   * step to be most careful with, because it is the only one that moves client
+   * data off Google's servers. Off until you name the hosts. https only.
+   *
+   * Secrets belong in Script Properties, never in Config.gs and never in a
+   * commit. Reference them as {{@SECRET_NAME}} and they are read at run time
+   * and never logged.
+   */
+  function httpRequest(step, ctx) {
+    var url = render(step.url, ctx.values);
+    Rails.assertOutboundAllowed(url, ctx.config.rails);
+
+    var options = { muteHttpExceptions: true, method: step.method || 'get' };
+    if (step.contentType) options.contentType = step.contentType;
+    if (step.headers) {
+      options.headers = {};
+      Object.keys(step.headers).forEach(function (h) {
+        options.headers[h] = withSecrets_(render(step.headers[h], ctx.values));
+      });
+    }
+    if (step.payload !== undefined) {
+      var body = (typeof step.payload === 'string') ?
+        render(step.payload, ctx.values) :
+        render(JSON.stringify(step.payload), ctx.values);
+      options.payload = withSecrets_(body);
+      if (!options.contentType) options.contentType = 'application/json';
+    }
+
+    var response = UrlFetchApp.fetch(url, options);
+    var code = response.getResponseCode();
+    var text = response.getContentText();
+
+    if (code >= 400) {
+      throw new Error('httpRequest to ' + hostOf_(url) + ' returned ' + code + ': ' +
+        String(text).slice(0, 200));
+    }
+
+    if (step.saveAs) {
+      var value = text;
+      if (step.jsonPath) {
+        try {
+          var parsed = JSON.parse(text);
+          value = step.jsonPath.split('.').reduce(function (acc, k) {
+            return (acc === undefined || acc === null) ? acc : acc[k];
+          }, parsed);
+        } catch (e) {
+          throw new Error('httpRequest could not read JSON from ' + hostOf_(url) + ': ' + e.message);
+        }
+      }
+      ctx.values[step.saveAs] = value;
+    }
+
+    // The body is deliberately not returned or logged. It may contain client data.
+    return { status: code, host: hostOf_(url) };
+  }
+
+  function hostOf_(url) {
+    return String(url).replace(/^https?:\/\//i, '').split('/')[0];
+  }
+
+  /**
+   * {{@NAME}} is read from Script Properties at run time. It never appears in
+   * Config.gs, in the repository, or in any log line.
+   */
+  function withSecrets_(text) {
+    return String(text).replace(/\{\{@([A-Z0-9_]+)\}\}/g, function (whole, key) {
+      var v = PropertiesService.getScriptProperties().getProperty(key);
+      if (v === null || v === undefined) {
+        throw new Error('Script Property "' + key + '" is not set. Add it under ' +
+          'Project Settings, Script Properties. Do not put it in Config.gs.');
+      }
+      return v;
+    });
+  }
+
   function custom(step, ctx) {
     if (typeof Custom === 'undefined' || typeof Custom[step.fn] !== 'function') {
       throw new Error('Custom step "' + step.fn + '" is not defined in Custom.gs');
@@ -301,6 +384,7 @@ var Steps = (function () {
     draftEmail: draftEmail,
     notify: notify,
     createCalendarEvent: createCalendarEvent,
+    httpRequest: httpRequest,
     writeBack: writeBack,
     custom: custom
   };

@@ -265,7 +265,125 @@ section('8. Calendar deadlines come from the row, never from a guess');
   check('on the date the row gave it', new Date(w2.events[0].date).getFullYear() === 2027);
 }
 
-section('9. There is no send path in this repository');
+section('9. Outbound HTTP: off by default, allowlisted, secrets never in config');
+{
+  const e = setUp([rowFor('M-012', 'Nina Park', 'nina@example.com', 'Probate', '$1,500.00', 'New')]);
+  e.call(`CONFIG.steps.push({ type: 'httpRequest', method: 'post',
+    url: 'https://api.example-crm.com/matters',
+    headers: { Authorization: 'Bearer {{@CRM_TOKEN}}' },
+    payload: { name: '{{CLIENT_NAME}}', matter: '{{MATTER_ID}}' },
+    saveAs: 'CRM_ID', jsonPath: 'id' });`);
+
+  // Off by default: the run fails and nothing reached the network.
+  const blocked = e.call('Runner.runOnce()');
+  check('outbound is off by default', blocked.results[0].status === 'failed',
+    JSON.stringify(blocked.results[0]));
+  check('and nothing was fetched', e.world.fetches.length === 0);
+
+  // On, but the host is not on the list.
+  const e2 = setUp([rowFor('M-013', 'Nina Park', 'nina@example.com', 'Probate', '$1,500.00', 'New')]);
+  e2.call(`CONFIG.rails.allowOutboundHttp = true; CONFIG.rails.allowedHosts = ['api.clio.com'];`);
+  e2.call(`CONFIG.steps.push({ type: 'httpRequest', url: 'https://api.example-crm.com/matters' });`);
+  const wrongHost = e2.call('Runner.runOnce()');
+  check('an unlisted host is refused', wrongHost.results[0].status === 'failed' &&
+    /not on the allowlist/.test(wrongHost.results[0].error), JSON.stringify(wrongHost.results[0]));
+  check('and nothing was fetched', e2.world.fetches.length === 0);
+
+  // On, listed, with the secret in Script Properties.
+  const e3 = setUp([rowFor('M-014', 'Nina Park', 'nina@example.com', 'Probate', '$1,500.00', 'New')]);
+  e3.world.scriptProperties.set('CRM_TOKEN', 'super-secret-value');
+  e3.call(`CONFIG.rails.allowOutboundHttp = true; CONFIG.rails.allowedHosts = ['api.example-crm.com'];`);
+  e3.call(`CONFIG.steps.push({ type: 'httpRequest', method: 'post',
+    url: 'https://api.example-crm.com/matters',
+    headers: { Authorization: 'Bearer {{@CRM_TOKEN}}' },
+    payload: { name: '{{CLIENT_NAME}}' },
+    saveAs: 'CRM_ID', jsonPath: 'id' });`);
+  const ok = e3.call('Runner.runOnce()');
+  check('an allowlisted call goes through', ok.results[0].status === 'ok', JSON.stringify(ok.results[0]));
+  check('exactly one request was made', e3.world.fetches.length === 1);
+  check('the secret was resolved from Script Properties',
+    e3.world.fetches[0].options.headers.Authorization === 'Bearer super-secret-value');
+  check('the row value reached the payload',
+    e3.world.fetches[0].options.payload.includes('Nina Park'));
+  check('the response body was never logged',
+    !JSON.stringify(e3.world.grid('sheet-1', 'Log')).includes('ext-123'),
+    JSON.stringify(e3.world.grid('sheet-1', 'Log')));
+
+  // A missing secret is a clear error, not a header reading "undefined".
+  const e4 = setUp([rowFor('M-015', 'Nina Park', 'nina@example.com', 'Probate', '$1,500.00', 'New')]);
+  e4.call(`CONFIG.rails.allowOutboundHttp = true; CONFIG.rails.allowedHosts = ['api.example-crm.com'];`);
+  e4.call(`CONFIG.steps.push({ type: 'httpRequest', url: 'https://api.example-crm.com/x',
+    headers: { Authorization: 'Bearer {{@MISSING_TOKEN}}' } });`);
+  const noSecret = e4.call('Runner.runOnce()');
+  check('a missing Script Property says so by name',
+    /MISSING_TOKEN/.test(noSecret.results[0].error || ''), JSON.stringify(noSecret.results[0]));
+
+  // A 4xx from the far end is a failure, not a quiet success.
+  const e5 = setUp([rowFor('M-016', 'Nina Park', 'nina@example.com', 'Probate', '$1,500.00', 'New')]);
+  e5.world.setResponse(422, '{"error":"unprocessable"}');
+  e5.call(`CONFIG.rails.allowOutboundHttp = true; CONFIG.rails.allowedHosts = ['api.example-crm.com'];`);
+  e5.call(`CONFIG.steps.push({ type: 'httpRequest', url: 'https://api.example-crm.com/x' });`);
+  const failed = e5.call('Runner.runOnce()');
+  check('a 422 marks the row rather than passing',
+    failed.results[0].status === 'failed' && /422/.test(failed.results[0].error),
+    JSON.stringify(failed.results[0]));
+}
+
+section('10. Work can arrive from a webhook or a form, and still hits every gate');
+{
+  const e = setUp([]);
+  e.world.scriptProperties.set('WEBHOOK_SECRET', 'shared-secret');
+
+  // Wrong secret: rejected, nothing added.
+  const bad = e.call(`doPost({ postData: { contents: JSON.stringify({ secret: 'wrong', client_name: 'X' }) } })`);
+  check('a bad secret is rejected', JSON.parse(bad.text).status === 'error');
+  check('and no row was added', e.world.grid('sheet-1', 'Intake').length === 1);
+
+  // Right secret: a row lands, already marked ready.
+  const good = e.call(`doPost({ postData: { contents: JSON.stringify({
+    secret: 'shared-secret', matter_id: 'W-001', client_name: 'Omar Haddad',
+    client_email: 'omar@example.com', matter_type: 'Immigration', fee_amount: '$3,300.00' }) } })`);
+  check('a good webhook is accepted', JSON.parse(good.text).status === 'success', good.text);
+  const grid = e.world.grid('sheet-1', 'Intake');
+  check('one row was added', grid.length === 2, JSON.stringify(grid));
+  check('the status was set to the ready value', grid[1][HEADERS.indexOf('status')] === 'New');
+  check('the values landed in the right columns',
+    grid[1][HEADERS.indexOf('client_name')] === 'Omar Haddad' &&
+    grid[1][HEADERS.indexOf('fee_amount')] === '$3,300.00', JSON.stringify(grid[1]));
+
+  // And the pipeline picks it up on the next run like any other row.
+  const ran = e.call('Runner.runOnce()');
+  check('the next run processes the webhook row', ran.ran === 1 && ran.results[0].status === 'ok',
+    JSON.stringify(ran.results && ran.results[0]));
+  check('it produced documents', e.world.docsIn('W-001 - Omar Haddad').length > 0);
+
+  // A webhook missing a required value still refuses. No shortcut past the gate.
+  const e2 = setUp([]);
+  e2.world.scriptProperties.set('WEBHOOK_SECRET', 'shared-secret');
+  e2.call(`doPost({ postData: { contents: JSON.stringify({
+    secret: 'shared-secret', matter_id: 'W-002', client_name: 'No Fee',
+    client_email: 'nofee@example.com', matter_type: 'Probate' }) } })`);
+  const refused = e2.call('Runner.runOnce()');
+  check('a webhook does not get past the gate', refused.results[0].status === 'refused',
+    JSON.stringify(refused.results[0]));
+  check('and left nothing behind', e2.world.folderNames().filter((n) => n.startsWith('W-002')).length === 0);
+
+  // A form submission goes through the same door.
+  const e3 = setUp([]);
+  e3.call(`onFormSubmitted({ namedValues: { 'matter_id': ['F-001'], 'client_name': ['Priya Raman'],
+    'client_email': ['priya@example.com'], 'matter_type': ['Family Law'], 'fee_amount': ['$2,100.00'] } })`);
+  const formRan = e3.call('Runner.runOnce()');
+  check('a form submission becomes a job', formRan.ran === 1 && formRan.results[0].status === 'ok',
+    JSON.stringify(formRan.results && formRan.results[0]));
+
+  // The form trigger installs.
+  e3.call(`CONFIG.formId = 'form-abc'; installFormTrigger();`);
+  check('the form trigger installs',
+    e3.world.triggers.some((t) => t.fn === 'onFormSubmitted' && t.formId === 'form-abc'),
+    JSON.stringify(e3.world.triggers));
+}
+
+section('11. There is no send path in this repository');
 {
   const dir = path.join(__dirname, '..', 'apps-script');
   const offenders = [];

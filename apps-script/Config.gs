@@ -83,11 +83,16 @@ var CONFIG = {
     }
   ],
 
+  /* Optional: a Google Form as the front door. See Webhook.gs. */
+  formId: '',
+
   /* The rails. Read these before you change them. */
   rails: {
     neverInvent: true,          // a missing value is a refusal, never a guess
     allowInternalNotify: false, // internal alerts off until you name your domains
-    internalDomains: []         // e.g. ['yourfirm.com']
+    internalDomains: [],        // e.g. ['yourfirm.com']
+    allowOutboundHttp: false,   // calling anything outside Google, off by default
+    allowedHosts: []            // e.g. ['api.clio.com'] — exact hosts, never wildcards
   },
 
   logging: { tabName: 'Log' }

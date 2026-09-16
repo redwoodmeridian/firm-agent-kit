@@ -193,3 +193,51 @@ the list.
 No recipe here sends mail to a client, files with a court, moves money, or
 signs anything. Those are the four things this kit deliberately cannot do. If
 your idea needs one of them, the agent prepares it and a human does it.
+
+---
+
+# Beyond Google
+
+The recipes above live inside Workspace. These reach outside it, using the
+`httpRequest` step and the webhook endpoint. Same gates, same refusals.
+
+## 15. Case management system in both directions
+
+**The job.** The matter exists in Clio or Lawmatics, and the documents are made
+by hand in Drive.
+
+**Trigger.** A webhook from the case management system when a matter is opened,
+or a poll of its API on a clock.
+**Steps.** `fillTemplates` → `review` → `httpRequest` to write the document
+links back onto the matter record → `writeBack`.
+**Rails.** Allowlist exactly the one API host. Token in Script Properties, never
+in the config.
+
+## 16. Website form to acknowledged lead
+
+**The job.** A form on the firm's site emails somebody, and that is the whole
+system.
+
+**Trigger.** The site POSTs to the web app endpoint.
+**Steps.** Row lands → `fillTemplates` (intake summary) → `draftEmail`
+acknowledgement → `notify` intake internally.
+**Rails.** Draft only. The shared secret is required, because the endpoint is
+open to the internet.
+
+## 17. Intake alert into Slack or Teams
+
+**The job.** New matters are noticed whenever somebody next opens the sheet.
+
+**Trigger.** Any row reaching ready.
+**Steps.** `httpRequest` POST to the incoming webhook URL.
+**Rails.** Post the matter id and the type. Never the client's name or facts of
+the matter into a chat tool, unless the firm has decided that is acceptable and
+written it down.
+
+## 18. Moving off Zapier one workflow at a time
+
+**The job.** Eleven Zaps nobody fully remembers.
+
+**How.** Point the existing Zap at your web app URL as its final step. The Zap
+keeps doing the trigger, your script does the work. Then replace the trigger
+itself and switch the Zap off. Nothing has to move at once.

@@ -86,6 +86,32 @@ var Rails = (function () {
   }
 
   /**
+   * Outbound HTTP. This is the rail that matters most once an agent can talk
+   * to the internet, because this is where client data leaves the firm.
+   *
+   * Off until you turn it on and name the hosts you meant. An allowlist of
+   * exact hostnames, never a wildcard, never "any https".
+   */
+  function assertOutboundAllowed(url, rails) {
+    if (!rails || rails.allowOutboundHttp !== true) {
+      throw new Error(
+        'httpRequest is disabled. Set rails.allowOutboundHttp to true and list ' +
+        'the hosts you meant in rails.allowedHosts to turn it on.');
+    }
+    var host = String(url).replace(/^https?:\/\//i, '').split('/')[0].split(':')[0].toLowerCase();
+    if (!/^https:\/\//i.test(String(url))) {
+      throw new Error('httpRequest refused: ' + url + ' is not https.');
+    }
+    var allowed = (rails.allowedHosts || []).map(function (h) { return String(h).toLowerCase(); });
+    if (allowed.indexOf(host) === -1) {
+      throw new Error(
+        'httpRequest refused: ' + host + ' is not on the allowlist. ' +
+        'Allowed: ' + (allowed.join(', ') || '(none configured)') + '.');
+    }
+    return true;
+  }
+
+  /**
    * Drive query strings are single quoted, so an apostrophe in a client's name
    * breaks the query. A client named O'Donnell found this the hard way.
    * Every query in this kit goes through here.
@@ -99,6 +125,7 @@ var Rails = (function () {
     missingValues: missingValues,
     precheck: precheck,
     assertNotifyAllowed: assertNotifyAllowed,
+    assertOutboundAllowed: assertOutboundAllowed,
     escapeQuery: escapeQuery
   };
 })();
