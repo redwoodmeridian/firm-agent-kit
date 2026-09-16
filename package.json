@@ -1,0 +1,8 @@
+{
+  "name": "firm-agent-kit",
+  "version": "1.0.0",
+  "description": "Build one agent for your law firm. Runs in your own Google Workspace, on a clock, and stops before anything leaves the building.",
+  "scripts": { "test": "node test/run.js" },
+  "license": "MIT",
+  "private": false
+}
