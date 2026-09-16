@@ -1,5 +1,5 @@
 node_modules/
 .clasp.json
 .clasprc.json
-AGENT.md
+/AGENT.md
 .DS_Store
