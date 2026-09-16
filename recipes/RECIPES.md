@@ -241,3 +241,44 @@ written it down.
 **How.** Point the existing Zap at your web app URL as its final step. The Zap
 keeps doing the trigger, your script does the work. Then replace the trigger
 itself and switch the Zap off. Nothing has to move at once.
+
+## 19. Gemini inside the pipeline, where it belongs
+
+**The job.** Something in the run genuinely needs judgment: classifying an
+inbound enquiry, summarising a long document, pulling a date out of a
+paragraph.
+
+**How.** No new code. An `httpRequest` step to Gemini, with the key from
+[Google AI Studio](https://aistudio.google.com/apikey) in Script Properties:
+
+```js
+rails: {
+  allowOutboundHttp: true,
+  allowedHosts: ['generativelanguage.googleapis.com']
+}
+```
+
+```js
+{
+  type: 'httpRequest',
+  method: 'post',
+  url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={{@GEMINI_API_KEY}}',
+  payload: {
+    contents: [{ parts: [{ text: 'Classify this enquiry as PI, Family, Probate or Other. Answer with one word only: {{ENQUIRY_TEXT}}' }] }]
+  },
+  saveAs: 'MATTER_TYPE_SUGGESTED',
+  jsonPath: 'candidates.0.content.parts.0.text'
+}
+```
+
+Check the current model name in AI Studio before you rely on it; they change.
+
+**Rails.** Write the answer into a column a human reads, never straight into a
+document. The model may suggest a matter type. It may not supply a fee amount
+the gate refused, decide a deadline, or write the body of anything a client
+signs.
+
+**Why it is last in this list.** Most firms never need it. A template filled
+from a row is the same document every time; a model in the pipeline is a review
+problem on every matter. Put the intelligence in designing the agent and keep
+the run deterministic.

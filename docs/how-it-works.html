@@ -1,0 +1,511 @@
+<title>Anatomy of a Firm Agent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+  :root {
+    --ink:        #15181f;
+    --ink-soft:   #4a5160;
+    --ink-faint:  #7b8496;
+    --paper:      #f6f6f4;
+    --surface:    #ffffff;
+    --line:       #dcdcd6;
+    --line-soft:  #e8e8e3;
+    --gate:       #b4560f;
+    --gate-bg:    #fbf0e6;
+    --pass:       #2f6b4f;
+    --pass-bg:    #eaf2ed;
+    --model:      #4a3a8f;
+    --model-bg:   #efecf9;
+    --rule:       #15181f;
+
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink:        #eceef2;
+      --ink-soft:   #a8b0bf;
+      --ink-faint:  #737c8c;
+      --paper:      #14161b;
+      --surface:    #1b1e25;
+      --line:       #2e333d;
+      --line-soft:  #252931;
+      --gate:       #e8a065;
+      --gate-bg:    #2b1f14;
+      --pass:       #77bf9a;
+      --pass-bg:    #16241d;
+      --model:      #b0a2ee;
+      --model-bg:   #201c33;
+      --rule:       #eceef2;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:        #eceef2;
+    --ink-soft:   #a8b0bf;
+    --ink-faint:  #737c8c;
+    --paper:      #14161b;
+    --surface:    #1b1e25;
+    --line:       #2e333d;
+    --line-soft:  #252931;
+    --gate:       #e8a065;
+    --gate-bg:    #2b1f14;
+    --pass:       #77bf9a;
+    --pass-bg:    #16241d;
+    --model:      #b0a2ee;
+    --model-bg:   #201c33;
+    --rule:       #eceef2;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 44px 64px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(32px, 6vw, 50px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 58ch;
+    margin: 0;
+  }
+
+  .masthead-rule {
+    height: 2px;
+    background: var(--rule);
+    margin: 30px 0 0;
+  }
+
+  /* ---------- section headings ---------- */
+
+  .section-label {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 46px 0 18px;
+  }
+  .section-label h2 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .section-label .fill {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* ---------- triggers ---------- */
+
+  .triggers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 620px) { .triggers { grid-template-columns: 1fr; } }
+
+  .trigger {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 15px 16px;
+  }
+  .trigger .name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .trigger .what {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .trigger .fn {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    margin-top: 8px;
+  }
+
+  .converge {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    padding: 14px 0 0;
+  }
+  .converge strong { color: var(--ink); font-weight: 500; }
+
+  /* ---------- the spine ---------- */
+
+  .spine { border-top: 1px solid var(--line); }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 44px 1fr 158px;
+    gap: 18px;
+    align-items: start;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  @media (max-width: 620px) {
+    .stage { grid-template-columns: 34px 1fr; gap: 12px; }
+    .stage .rail { grid-column: 2; }
+  }
+
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-faint);
+    padding-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stage h3 {
+    font-family: var(--mono);
+    font-size: 14.5px;
+    font-weight: 600;
+    margin: 0 0 3px;
+    letter-spacing: -0.01em;
+  }
+  .stage p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+    max-width: 52ch;
+  }
+
+  .rail {
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 8px 10px;
+    border-left: 2px solid var(--line);
+    color: var(--ink-faint);
+  }
+  .rail.is-gate  { border-left-color: var(--gate);  background: var(--gate-bg);  color: var(--gate); }
+  .rail.is-pass  { border-left-color: var(--pass);  background: var(--pass-bg);  color: var(--pass); }
+  .rail.is-model { border-left-color: var(--model); background: var(--model-bg); color: var(--model); }
+  .rail b { font-weight: 600; display: block; font-family: var(--mono); font-size: 11px;
+            letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
+
+  .stage.is-gate { background: var(--gate-bg); margin-inline: -12px; padding-inline: 12px; }
+  .stage.is-gate h3 { color: var(--gate); }
+
+  /* ---------- exits ---------- */
+
+  .exits {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+  }
+  @media (max-width: 620px) { .exits { grid-template-columns: 1fr; } }
+
+  .exit {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 14px 15px;
+  }
+  .exit .status {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 5px;
+  }
+  .exit.ok .status     { color: var(--pass); }
+  .exit.info .status   { color: var(--gate); }
+  .exit.attn .status   { color: var(--gate); }
+  .exit p { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+  /* ---------- model panel ---------- */
+
+  .model-panel {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 20px;
+  }
+  .model-panel > p.lede {
+    margin: 0 0 16px;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+  .yesno {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 620px) { .yesno { grid-template-columns: 1fr; } }
+
+  .yesno > div { padding: 13px 14px; border-left: 2px solid var(--line); }
+  .yesno .yes { border-left-color: var(--model); background: var(--model-bg); }
+  .yesno .no  { border-left-color: var(--gate);  background: var(--gate-bg); }
+  .yesno h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 7px;
+  }
+  .yesno .yes h4 { color: var(--model); }
+  .yesno .no h4  { color: var(--gate); }
+  .yesno ul { margin: 0; padding-left: 17px; font-size: 13.5px; color: var(--ink-soft); }
+  .yesno li { margin-bottom: 4px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--line-soft);
+    padding: 1px 4px;
+  }
+
+  .note {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+
+  footer {
+    margin-top: 52px;
+    padding-top: 18px;
+    border-top: 2px solid var(--rule);
+    font-size: 13px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    justify-content: space-between;
+  }
+  footer a { color: var(--ink-soft); }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">MLA Intelligence Labs · Advanced Room</p>
+  <h1>Anatomy of a firm agent</h1>
+  <p class="standfirst">
+    One job, from the moment it arrives to the moment it stops and waits for a
+    human. Every stage runs in Google Apps Script, inside your own Workspace.
+    Nothing here leaves your Google account unless you explicitly send it out.
+  </p>
+  <div class="masthead-rule"></div>
+
+  <div class="section-label"><h2>Work arrives</h2><span class="fill"></span></div>
+
+  <div class="triggers">
+    <div class="trigger">
+      <div class="name">A clock</div>
+      <div class="what">Checks the intake sheet every few minutes. Start here.</div>
+      <div class="fn">installTrigger()</div>
+    </div>
+    <div class="trigger">
+      <div class="name">A form</div>
+      <div class="what">A Google Form submission becomes a row.</div>
+      <div class="fn">installFormTrigger()</div>
+    </div>
+    <div class="trigger">
+      <div class="name">A webhook</div>
+      <div class="what">Any system POSTs a row. Your site, your CRM, your case manager.</div>
+      <div class="fn">doPost(e)</div>
+    </div>
+  </div>
+
+  <p class="converge">
+    All three land in the <strong>same sheet</strong> and go through the
+    <strong>same gates</strong>. A webhook gets no shortcut.
+  </p>
+
+  <div class="section-label"><h2>The run, for one row</h2><span class="fill"></span></div>
+
+  <div class="spine">
+
+    <div class="stage">
+      <div class="num">01</div>
+      <div>
+        <h3>Claim</h3>
+        <p>Status becomes <code>Processing</code> before any work starts, so two runs can never pick up the same matter.</p>
+      </div>
+      <div class="rail"><b>Rail</b>Never touch a row that is not marked ready.</div>
+    </div>
+
+    <div class="stage is-gate">
+      <div class="num">02</div>
+      <div>
+        <h3>Precheck &mdash; the gate</h3>
+        <p>Every template is read and every placeholder resolved <em>before</em> anything is created. One missing value and the run refuses, names the field, and writes the reason into the sheet.</p>
+      </div>
+      <div class="rail is-gate"><b>Refuses</b>No folder. No document. Nothing to clean up.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">03</div>
+      <div>
+        <h3>Fill</h3>
+        <p>Your approved Google Doc is copied and the placeholders are replaced. Same template, same row, same document, every time.</p>
+      </div>
+      <div class="rail is-gate"><b>No model here</b>The script writes. Nothing generates prose.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">04</div>
+      <div>
+        <h3>Review</h3>
+        <p>Placeholders left behind, the client's name in every document, fee figures agreeing across documents, all documents present.</p>
+      </div>
+      <div class="rail is-gate"><b>Fails to</b>Needs attention. No draft is made.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">05</div>
+      <div>
+        <h3>Export</h3>
+        <p>Each document exported to PDF, into the same matter folder.</p>
+      </div>
+      <div class="rail">Optional.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">06</div>
+      <div>
+        <h3>Draft</h3>
+        <p>A Gmail draft to the client, with the PDFs attached, sitting in Drafts with a human on the send button.</p>
+      </div>
+      <div class="rail is-gate"><b>Rail</b>There is no send function in the repository.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">07</div>
+      <div>
+        <h3>Call out</h3>
+        <p>Optionally push to another system: Clio, Lawmatics, Slack, your own API. This is the only stage where data leaves Google.</p>
+      </div>
+      <div class="rail is-gate"><b>Off by default</b>https only, hosts you name, key in Script Properties.</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">08</div>
+      <div>
+        <h3>Write back</h3>
+        <p>Folder link and timestamp onto the row, so the sheet stays the place anyone can look.</p>
+      </div>
+      <div class="rail">&mdash;</div>
+    </div>
+
+    <div class="stage">
+      <div class="num">09</div>
+      <div>
+        <h3>Log, then stop</h3>
+        <p>One line: what ran, what it produced, what needs a human. Then it waits for the next row.</p>
+      </div>
+      <div class="rail is-pass"><b>Rail</b>Stop and report rather than work around a problem.</div>
+    </div>
+
+  </div>
+
+  <div class="section-label"><h2>Where a row ends up</h2><span class="fill"></span></div>
+
+  <div class="exits">
+    <div class="exit ok">
+      <div class="status">Generated</div>
+      <p>Documents filed, email drafted, link on the row. A person reads it and presses send.</p>
+    </div>
+    <div class="exit info">
+      <div class="status">Needs info</div>
+      <p>It refused. The missing field is named in the notes column. Every one of these is a question your intake form is not asking.</p>
+    </div>
+    <div class="exit attn">
+      <div class="status">Needs attention</div>
+      <p>It wrote something, then its own review caught a problem. Nothing went to drafts.</p>
+    </div>
+  </div>
+
+  <div class="section-label"><h2>Can Gemini run inside this?</h2><span class="fill"></span></div>
+
+  <div class="model-panel">
+    <p class="lede">
+      Yes. Apps Script can call Gemini through the same <code>httpRequest</code> step
+      that calls any other API: a key from Google AI Studio kept in Script Properties,
+      and <code>generativelanguage.googleapis.com</code> on the allowlist. No new
+      code. The question worth arguing about is not whether it runs, it is where you
+      let it stand in the pipeline.
+    </p>
+
+    <div class="yesno">
+      <div class="yes">
+        <h4>Reasonable</h4>
+        <ul>
+          <li>Summarising a long document into a value a human then reads</li>
+          <li>Classifying a matter type or an inbound enquiry</li>
+          <li>Pulling a date or a name out of unstructured text, into a cell you can see</li>
+          <li>Drafting the body of an email that stops in Drafts anyway</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h4>Not here</h4>
+        <ul>
+          <li>Writing the engagement letter, or any document body</li>
+          <li>Supplying a value the gate refused, which is guessing with extra steps</li>
+          <li>Deciding a fee, a deadline, or a limitation period</li>
+          <li>Anything on the path between the draft and a client</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="note">
+      A model in the pipeline is a review problem on every single matter. A template
+      filled from a row is the same document every time. Put the intelligence in
+      designing the agent, and keep the run deterministic. If a stage genuinely needs
+      judgment, let the model write into a cell a human reads, never into the
+      document a client signs.
+    </p>
+  </div>
+
+  <footer>
+    <span>Firm Agent Kit &middot; github.com/redwoodmeridian/firm-agent-kit</span>
+    <span>Irfad Imtiaz &middot; My Legal Academy</span>
+  </footer>
+
+</div>

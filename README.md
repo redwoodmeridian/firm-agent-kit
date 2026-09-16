@@ -37,7 +37,17 @@ cd firm-agent-kit
 claude
 ```
 
-Then say: **design my agent**
+Then paste the prompt from **[`PROMPT.md`](PROMPT.md)**. There are no commands
+to remember. The short version, if you want to start right now:
+
+> Read CLAUDE.md, AGENT.template.md and recipes/RECIPES.md. I run a law firm
+> and I want to automate one job using Google Apps Script. Interview me one
+> question at a time, do not write code until we agree what the agent does,
+> then build it and walk me through getting it running. I am not a developer.
+
+**[How it works, in one page](https://claude.ai/artifact/CfooCxLd2ckAWQfAsS2c5V)**
+— the three triggers, the nine stages, the gates, and where a model is and is
+not allowed to stand.
 
 If you would rather read first, `SETUP.md` is the whole install, and
 `recipes/RECIPES.md` is fourteen jobs firms actually automate.
@@ -55,6 +65,8 @@ If you would rather read first, `SETUP.md` is the whole install, and
 | `apps-script/Setup.gs` | `selfTest`, `runNow`, `installTrigger`, `removeTriggers`. |
 | `recipes/RECIPES.md` | Fourteen starting points. |
 | `test/` | Runs the engine on this machine against fake Google services. |
+| `PROMPT.md` | Prompts to paste, instead of commands to remember. |
+| `docs/how-it-works.html` | The one-page diagram of the whole run. |
 
 ## The step types
 
@@ -123,6 +135,12 @@ document every time. A model in the loop gives you something to review on every
 matter.
 
 Put the intelligence in the design. Keep the run deterministic.
+
+You *can* call Gemini from here, and it needs no new code: an `httpRequest`
+step to `generativelanguage.googleapis.com` with a Google AI Studio key in
+Script Properties. Recipe 19 has the exact config. Use it to classify, to
+summarise, or to pull a value into a cell a human reads. Not to write the
+document.
 
 ## Tests
 
