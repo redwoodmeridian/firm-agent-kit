@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-09-16 — Triggers in, and calls out
+
+The clock was the only way work could arrive, and Workspace was the only place
+the agent could reach. That made it document automation rather than automation.
+
+### Added
+- `apps-script/Webhook.gs` — `doPost` web-app endpoint guarded by a shared
+  secret in Script Properties, `onFormSubmitted` for Google Forms, and
+  `appendIntakeRow` which both funnel into the same sheet
+- `httpRequest` step over `UrlFetchApp` for case management systems, CRMs and
+  anything else with an API
+- `Rails.assertOutboundAllowed` — outbound is off by default, https only, exact
+  hostnames, no wildcards
+- `{{@SECRET_NAME}}` resolved from Script Properties at run time, never written
+  to a log and never placed in `Config.gs`
+- Four cross-system recipes, including how to move off Zapier one workflow at a
+  time
+- An honest README section on quotas, runtime limits and what Zapier still does
+  better
+
+### Verified
+81 checks now pass. The new ones prove that a webhook row is prechecked,
+refused and logged exactly like a typed one, that a bad shared secret adds
+nothing, that an unlisted host is refused before any request is made, that a
+missing Script Property names itself, that a 4xx marks the row instead of
+passing quietly, and that neither the secret nor the response body reaches the
+log.
+
 ## 2026-09-16 — First release
 
 Built for the MLA Intelligence Labs advanced room. Generalises the September 9

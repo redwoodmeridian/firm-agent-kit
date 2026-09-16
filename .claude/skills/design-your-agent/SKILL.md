@@ -41,6 +41,15 @@ six at once, and never fill in an answer for them.
    arrives to the moment it is done. Who touches it, and what do they produce?
 2. **The trigger.** What one thing means this job should start? If they give you
    several, make them pick the one that always happens.
+
+   There are three shapes, and the clock is the right default. Only move off it
+   if the work genuinely cannot wait for a poll:
+   - **A clock.** Checks the sheet every few minutes. Start here.
+   - **A form.** A Google Form submission becomes a row. Good when a client or a
+     colleague is the one supplying the information.
+   - **A webhook.** Another system POSTs the row. Good when the work already
+     exists somewhere else: a case management system, a website form, a lead
+     provider.
 3. **The inputs.** What information does the job need? Push until you have the
    list, because this becomes the columns of the intake sheet.
 4. **The output.** What gets produced? A document, a folder, an email, a
@@ -66,6 +75,11 @@ These are not negotiable and you should say them plainly when they come up.
   most valuable thing the agent produces in the first month.
 - **Deadlines come from the row.** The agent books the date it was given. It
   never computes a limitation period.
+- **Anything outside Google is a decision, not a detail.** If the job needs to
+  read or write another system, say plainly that this is the step where client
+  data leaves the firm's Google account, that it is off until they name the
+  exact host, and that the token goes in Script Properties rather than in a
+  file. Most first agents do not need it.
 - **Start smaller than they want.** If they describe four documents, ask whether
   the first version could do one. It can.
 
