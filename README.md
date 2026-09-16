@@ -154,9 +154,9 @@ row is never processed twice.
 
 ## Who made this
 
-Built by **Irfad Imtiaz** — Director of Technology at
-[My Legal Academy](https://mylegalacademy.com), and cofounder and CTO of
-[Ranql](https://ranql.com) at Clearfield Labs.
+Built by **[Irfad Imtiaz](https://github.com/irfad7)** ([@irfad7](https://github.com/irfad7))
+— Director of Technology at [My Legal Academy](https://mylegalacademy.com), and
+cofounder and CTO of [Ranql](https://ranql.com) at Clearfield Labs.
 
 Made for the MLA Intelligence Labs advanced room, where a room of lawyers builds
 this kind of thing live every Wednesday.
